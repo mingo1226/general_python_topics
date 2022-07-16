@@ -1,0 +1,300 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Dec  1 13:54:44 2019
+
+@author: Andrew
+"""
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+
+train = pd.read_csv("/Users/Andrew/Library/Mobile Documents/com~apple~CloudDocs/Data Science/Kaggle/titanic/train.csv")
+
+train.head()
+train.columns.values
+
+x = train.Age
+y = train.Survived
+color = train.Pclass
+
+newplot = plt.scatter(x, y, c = color, label = color)
+plt.legend()
+
+sns.pairplot(x_vars = ['Age'], y_vars = ['Survived'], data = train, hue = "Pclass", size = 5)
+
+train.Pclass.value_counts()
+pd.crosstab(index=train['Survived'], columns=train['Pclass'])
+
+#create function to display table print out
+def table(index, columns, data):
+    return pd.crosstab(index=data[index], columns=data[columns])
+
+table('Survived', 'Pclass', train)
+table('Survived', 'Sex', train)
+
+#child = 0, adult = 1, elderly = 2
+def age(train):
+    if  train.Age < 10:
+        return('child')
+    elif train.Age < 36:
+        return('youngadult')
+    elif train.Age < 65:
+        return('adult')
+    else:
+        return('elderly')
+        
+        
+agetype = train.apply(age, axis = "columns")   
+
+train['Agetype'] = agetype
+    
+table('Survived', 'Agetype', train)
+
+agesurvived = train.Age.loc[train.Survived == 1]
+ageperished = train.Age.loc[train.Survived == 0]
+sns.distplot(ageperished, bins = 20, label = 'Perished', kde=False)
+sns.distplot(agesurvived, bins = 20, label = 'Survived', kde=False)
+plt.legend();
+
+#look at Cabin NAs
+train.Cabin.notnull()[train.Survived == 0].sum()   
+train.Cabin.notnull()[train.Survived == 1].sum()  
+
+train.Cabin.isnull()[train.Survived == 0].sum()
+train.Cabin.isnull()[train.Survived == 1].sum()
+
+train.Cabin = train.Cabin.apply(str)
+
+def cabin(train):
+    if 'A' in train.Cabin:
+        return('A')
+    if 'B' in train.Cabin:
+        return('B')    
+    if 'C' in train.Cabin:
+        return('C')
+    if 'D' in train.Cabin:
+        return('D') 
+    if 'E' in train.Cabin:
+        return('E')
+    if 'F' in train.Cabin:
+        return('F')
+    else:
+        return(0)
+          
+cabinclassifier = train.apply(cabin, axis = "columns")
+train['cabinclassifier'] = cabinclassifier        
+
+sns.pairplot(x_vars = ['Fare'], y_vars = ['Agetype'], data = train, hue = "Survived", size = 5)
+
+x1 = train.loc[train.Pclass == 1, 'Survived']
+x2 = train.loc[train.Pclass == 2, 'Survived']
+x3 = train.loc[train.Pclass == 3, 'Survived']
+
+kwargs = dict(alpha=0.5, bins=5)
+
+plt.hist(x1,**kwargs, color = 'r', label = '1')
+plt.hist(x2, **kwargs,color = 'g', label = '2')
+plt.hist(x3,**kwargs, color = 'b', label = '3')
+plt.gca().set(title = 'Surived by Pclass', ylabel = 'Number in Survived Cat')
+plt.legend();
+
+legend = ['1', '0']
+plt.hist([train.Agetype, train.Survived], color = ['blue', 'green'])
+plt.legend(legend);
+
+sns.distplot(train.Fare, bins = 10, label = 'Fare')
+sns.distplot(train['Age'], bins = 10, label = 'Age')
+sns.plt.legend()
+
+
+table('Embarked', 'Survived', train)
+
+#create fare variable
+train.Fare.describe()
+table('Agetype', 'Survived', train)
+train.Fare.quantile([.55,.75])
+
+
+def fare(train):
+    if  train.Fare < 16.1:
+        return('low')
+    elif train.Fare < 31:
+        return('mod')
+    else:
+        return('high')
+
+faretype = train.apply(fare, axis = "columns")
+train['Faretype'] = faretype
+
+
+
+sns.countplot(x="Faretype", hue="Survived", data=train)
+
+table('Pclass', 'Survived', train)
+table('Sex', 'Survived', train)
+
+sns.catplot(x="Faretype", hue="Sex", col="Survived",
+                 data=train, kind="count",
+                 height=4, aspect=.7);
+            
+sns.catplot(x="Agetype", hue="cabinclassifier", col="Survived", row = 'Sex',
+                 data=train, kind="count",
+                 height=4, aspect=.7);      
+            
+sns.swarmplot(y = train['Age'], x = train['Survived'])
+train.columns.values       
+
+sns.scatterplot(y = train['Fare'], x = train['Age'], hue = train['Survived'])
+
+sns.barplot(y = train['cabinclassifier'], x = train['Age']) 
+table('cabinclassifier', 'Survived', train)
+  
+#new variable Parch + SibSp
+train['totalfam'] = train.Parch + train.SibSp    
+table('totalfam', 'Survived', train)
+     
+            
+#does gender with Faretype better classify than Pclass?
+train.Sex.loc[(train.Pclass == 3) & (train.Survived == 0)].value_counts()
+train.Sex.loc[(train.Faretype == "low") & (train.Survived == 0)].value_counts()
+
+sns.lineplot(data = train['Age'], label = 'Age')
+sns.lineplot(data = train['Pclass'], label = 'Pclass')
+
+train.Parch.head(10)
+
+sns.heatmap(data = train[['Age']])
+
+#fit models
+# Use numpy to convert to arrays
+import numpy as np
+
+# Labels are the values we want to predict
+labels = np.array(train['Survived'])
+
+# Remove the labels from the features
+# axis 1 refers to the columns
+features = train[['Faretype', 'Sex', 'Agetype', 'Fare', 'totalfam', 'Embarked', 'cabinclassifier']]
+features
+
+features = pd.get_dummies(features)
+
+# Saving feature names for later use
+feature_list = list(features.columns)
+
+# Convert to numpy array
+features = np.array(features)
+
+
+# Using Skicit-learn to split data into training and testing sets
+from sklearn.model_selection import train_test_split
+
+# Split the data into training and testing sets
+train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = 0.25, random_state = 42)
+
+print('Training Features Shape:', train_features.shape)
+print('Training Labels Shape:', train_labels.shape)
+print('Testing Features Shape:', test_features.shape)
+print('Testing Labels Shape:', test_labels.shape)
+
+#establise basline
+baseline = train.Survived.value_counts()[0]/train.Survived.value_counts().sum()
+print('Baseline is ' + '{:.2%}'.format(baseline))
+
+# Decision Tree
+from sklearn.tree import DecisionTreeClassifier
+# Classifier Tree
+dt = DecisionTreeClassifier(random_state=200)
+# Train the model on training data
+dt.fit(train_features, train_labels);
+
+# Use the the tree to predict method on the test data
+predictions = dt.predict(test_features)
+
+from sklearn.metrics import confusion_matrix
+confusion_matrix(test_labels, predictions).ravel()
+#tn, fp, fn, tp
+accuracy = (confusion_matrix(test_labels, predictions).ravel()[0]+confusion_matrix(test_labels, predictions).ravel()[3])/confusion_matrix(test_labels, predictions).ravel().sum()
+print('Decision Tree accuracy rate is ' + '{:.2%}'.format(accuracy))
+
+#random forest
+from sklearn.ensemble import RandomForestClassifier
+rf = RandomForestClassifier(n_estimators = 1000)
+rf.fit(train_features, train_labels);
+
+#predict on forest
+predictions = rf.predict(test_features)
+confusion_matrix(test_labels, predictions).ravel()
+accuracy = (confusion_matrix(test_labels, predictions).ravel()[0]+confusion_matrix(test_labels, predictions).ravel()[3])/confusion_matrix(test_labels, predictions).ravel().sum()
+print('Random Forest accuracy rate is ' + '{:.2%}'.format(accuracy))
+
+
+#import test set for Kaggle
+test_set = pd.read_csv("/Users/Andrew/Library/Mobile Documents/com~apple~CloudDocs/R Practice/Kaggle/titanic/test.csv")
+test_set.head()
+
+#add agetype to test set
+agetype = test_set.apply(age, axis = "columns")   
+test_set['Agetype'] = agetype
+
+#add fam size
+test_set['totalfam'] = test_set.Parch + test_set.SibSp  
+
+#add fare type
+faretype = test_set.apply(fare, axis = "columns")
+test_set['Faretype'] = faretype
+
+#add cabin classifier
+test_set.Cabin = test_set.Cabin.apply(str)
+cabinclassifier = test_set.apply(cabin, axis = "columns")
+test_set['cabinclassifier'] = cabinclassifier   
+
+
+features = test_set[['Faretype', 'Sex', 'Agetype', 'Fare', 'totalfam']]
+features
+features.Fare = features.Fare.fillna(features.Fare.mean())
+
+features = pd.get_dummies(features)
+features = np.array(features)
+predictions = rf.predict(features)
+
+#submission = pd.DataFrame({'PassengerId' : test_set['PassengerId'], 'Survived' : predictions}, index = False)
+submission = pd.DataFrame({'Survived' : predictions}, index = test_set['PassengerId'])
+submission.to_csv("/Users/Andrew/Library/Mobile Documents/com~apple~CloudDocs/R Practice/Kaggle/titanic/submission.csv")
+
+#cross validation - looks at features on original dataset
+from sklearn.model_selection import cross_val_score, cross_val_predict
+scores = cross_val_score(rf, train_features, train_labels, cv=10)
+print('Cross-validated mean score:', scores.mean())
+
+predictions = cross_val_predict(rf, features, y = labels, cv=6)
+
+#view decision tree
+#conda install graphviz
+#conda install pydotplus
+from sklearn.externals.six import StringIO  
+from IPython.display import Image  
+from sklearn.tree import export_graphviz
+import pydotplus
+dot_data = StringIO()
+export_graphviz(dt, out_file=dot_data,  
+                filled=True, rounded=True,
+                special_characters=True)
+graph = pydotplus.graph_from_dot_data(dot_data.getvalue())  
+Image(graph.create_png())
+
+
+#Logistic Regression
+from sklearn.linear_model import LogisticRegression
+# all parameters not specified are set to their defaults
+logisticRegr = LogisticRegression()
+logisticRegr.fit(train_features, train_labels)
+
+predictions = logisticRegr.predict(features)
+
+# Use score method to get accuracy of model
+score = logisticRegr.score(train_features, train_labels)
+print('Logistic Regression score is: ' + '{:.2%}'.format(score))
